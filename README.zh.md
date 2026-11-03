@@ -29,7 +29,7 @@ HARNESS_SRC="$HARNESS_SRC" PROFILE="$PROFILE" \
 
 ## 从 Harness 源码 checkout 安装
 
-`npm` 命令只应在本插件目录执行。Harness 源码仓库是 pnpm workspace，不能在 Harness 根目录运行 `npm install`；源码 checkout 也不保证提供全局 `dsh` 命令。
+以下代码块可从任意目录开始。`cd "$PLUGIN_ROOT/harness-gateway02"` 之后，`npm` 命令只在本插件 clone 目录执行；`cd "$HARNESS_SRC"` 之后，`pnpm dsh` 命令只在 Harness 源码目录执行。Harness 源码仓库是 pnpm workspace，不能在 Harness 根目录运行 `npm install`；源码 checkout 也不保证提供全局 `dsh` 命令。
 
 手工安装应使用 Harness 源码 checkout 的 CLI 入口：
 
@@ -38,6 +38,7 @@ PLUGIN_ROOT="/opt/harness-plugins"
 HARNESS_SRC="/opt/harness"
 PROFILE="<existing-profile>"
 
+# 插件 clone 目录：在这里执行 npm 命令
 cd "$PLUGIN_ROOT/harness-gateway02"
 npm ci
 npm run typecheck
@@ -45,6 +46,7 @@ npm run build
 npm test
 npm pack
 
+# Harness 源码目录：在这里执行 Harness CLI
 cd "$HARNESS_SRC"
 pnpm dsh plugin --profile "$PROFILE" add \
   "file:$PLUGIN_ROOT/harness-gateway02/dsh-higress-credential-routes-plugin-0.1.0.tgz"

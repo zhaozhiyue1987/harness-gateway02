@@ -71,6 +71,8 @@ Authorization: Bearer <短时发现令牌>
 
 ### 3.1 构建并安装新插件
 
+以下代码块可从任意目录开始；`cd "$PLUGIN_ROOT/harness-gateway02"` 后的 `npm` 命令在插件 clone 目录执行，`cd "$HARNESS_SRC"` 后的 `pnpm dsh` 命令在 Harness 源码 checkout 目录执行。
+
 ```bash
 PLUGIN_ROOT="/opt/harness-plugins"
 HARNESS_SRC="/opt/harness"

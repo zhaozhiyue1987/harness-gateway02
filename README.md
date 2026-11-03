@@ -31,7 +31,7 @@ The script runs the locked dependency checks, build, tests, packaging, and nativ
 Harness CLI installation. Restart the Harness Web process for the selected profile
 after installation. Console URLs and credentials are configured in the plugin UI.
 
-The `npm` commands belong in this plugin directory only. A Harness source checkout is a pnpm workspace and may not expose a global `dsh` binary. For a source checkout, install with the supported CLI entry point:
+The following commands may start from any shell directory. The `npm` commands belong in this plugin directory only, after `cd "$PLUGIN_ROOT/harness-gateway02"`. A Harness source checkout is a pnpm workspace and may not expose a global `dsh` binary; after `cd "$HARNESS_SRC"`, install with the supported CLI entry point:
 
 ```sh
 cd "$HARNESS_SRC"
