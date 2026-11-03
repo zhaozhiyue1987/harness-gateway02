@@ -1,4 +1,4 @@
-# AsiaInfo AIGW credential routes Harness plugin
+# AIGW credential routes Harness plugin
 
 This is a new standalone plugin project. It does not replace the existing `dsh-higress-ai-route-plugin` package.
 
