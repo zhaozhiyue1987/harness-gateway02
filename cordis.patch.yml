@@ -1,0 +1,3 @@
+- insert:
+    - id: higress-credential-routes-host
+      name: dsh-higress-credential-routes-plugin
