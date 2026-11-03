@@ -2,14 +2,28 @@
 
 这是独立于 `dsh-higress-ai-route-plugin` 的新插件项目，不覆盖旧插件。
 
-使用 Harness 源码部署时，可运行 [`scripts/install-native-harness.sh`](./scripts/install-native-harness.sh) 一键完成锁定依赖构建、测试、打包和原生 CLI 安装。脚本不会保存 Console 密码、网关凭证或发现令牌。
+对于任意 Harness 源码部署，可运行 [`scripts/install-native-harness.sh`](./scripts/install-native-harness.sh) 一键完成锁定依赖构建、测试、打包和原生 CLI 安装。脚本不会保存 Console 密码、网关凭证或发现令牌。
 
 插件允许同一 Harness profile 同时绑定多个 Higress `BEARER` 网关凭证。每个连接通过 Console 凭证发现接口读取该凭证可调用的全部 AI 路由，并按“连接 + 路由”创建独立 Provider。路由切换使用 Harness 原生 Provider/模型选择器。
 
+## 克隆并安装
+
+把本仓库克隆到指定目录，再对已有 Harness 源码 checkout 执行一键安装。`PROFILE` 必须已经存在；脚本不会创建 profile 或绑定某个特定运行实例。
+
 ```bash
-HARNESS_SRC=/opt/dsh/harness PROFILE=web \
+PLUGIN_ROOT="/opt/harness-plugins"
+HARNESS_SRC="/opt/harness"
+PROFILE="<existing-profile>"
+
+mkdir -p "$PLUGIN_ROOT"
+git clone https://github.com/zhaozhiyue1987/harness-gateway02.git \
+  "$PLUGIN_ROOT/harness-gateway02"
+cd "$PLUGIN_ROOT/harness-gateway02"
+HARNESS_SRC="$HARNESS_SRC" PROFILE="$PROFILE" \
   ./scripts/install-native-harness.sh
 ```
+
+脚本会完成锁定依赖检查、构建、测试、打包和原生 Harness CLI 安装。安装后请重启所选 profile 对应的 Harness Web 进程；Console 地址、Bearer 凭证和路由选择在插件 UI 中配置。
 
 目标 profile 必须已存在。安装完成后需要重启 Harness Web 进程，业务上的 Console 地址、Bearer 凭证和路由选择仍需在 Harness UI 中人工配置。
 
@@ -17,27 +31,26 @@ HARNESS_SRC=/opt/dsh/harness PROFILE=web \
 
 `npm` 命令只应在本插件目录执行。Harness 源码仓库是 pnpm workspace，不能在 Harness 根目录运行 `npm install`；源码 checkout 也不保证提供全局 `dsh` 命令。
 
-如果当前 Harness 源码位于 `/Users/zhao/项目开发/harness`，手工安装应使用源码 CLI 入口：
+手工安装应使用 Harness 源码 checkout 的 CLI 入口：
 
 ```bash
-PLUGIN_DIR="/Users/zhao/项目开发/ctc-ctcics-harness-repository/dsh-higress-credential-routes-plugin"
-PROFILE="web"
+PLUGIN_ROOT="/opt/harness-plugins"
+HARNESS_SRC="/opt/harness"
+PROFILE="<existing-profile>"
 
-cd "$PLUGIN_DIR"
+cd "$PLUGIN_ROOT/harness-gateway02"
 npm ci
 npm run typecheck
 npm run build
 npm test
 npm pack
 
-cd /Users/zhao/项目开发/harness
+cd "$HARNESS_SRC"
 pnpm dsh plugin --profile "$PROFILE" add \
-  file:"$PLUGIN_DIR/dsh-higress-credential-routes-plugin-0.1.0.tgz"
+  "file:$PLUGIN_ROOT/harness-gateway02/dsh-higress-credential-routes-plugin-0.1.0.tgz"
 ```
 
-当前 `127.0.0.1:3080` 使用 `web` profile；安装到 `demo` profile 不会出现在该实例中。安装后必须重启对应 Harness Web 进程，新的 bundle 才会加载。
-
-## 本地构建
+## 源码构建
 
 ```bash
 npm install

@@ -2,24 +2,39 @@
 
 This is a new standalone plugin project. It does not replace the existing `dsh-higress-ai-route-plugin` package.
 
-For a native Harness source checkout, use
+For any native Harness source checkout, use
 [`scripts/install-native-harness.sh`](./scripts/install-native-harness.sh) to build
 and install this bundle into an existing profile through the supported `dsh plugin`
 CLI.
 
 It supports multiple BEARER credential connections in one Harness profile. Every connection discovers all routes authorized for its credential and owns isolated Providers identified by `connectionId + gatewayInstanceId + routeId`.
 
+## Clone and install
+
+Clone this repository into a directory you control, then run the installer against
+an existing Harness source checkout. The `PROFILE` must already exist.
+
 ```sh
-HARNESS_SRC=/opt/dsh/harness PROFILE=web \
+PLUGIN_ROOT="/opt/harness-plugins"
+HARNESS_SRC="/opt/harness"
+PROFILE="<existing-profile>"
+
+mkdir -p "$PLUGIN_ROOT"
+git clone https://github.com/zhaozhiyue1987/harness-gateway02.git \
+  "$PLUGIN_ROOT/harness-gateway02"
+cd "$PLUGIN_ROOT/harness-gateway02"
+HARNESS_SRC="$HARNESS_SRC" PROFILE="$PROFILE" \
   ./scripts/install-native-harness.sh
 ```
+
+The script runs the locked dependency checks, build, tests, packaging, and native
+Harness CLI installation. Restart the Harness Web process for the selected profile
+after installation. Console URLs and credentials are configured in the plugin UI.
 
 The `npm` commands belong in this plugin directory only. A Harness source checkout is a pnpm workspace and may not expose a global `dsh` binary. For a source checkout, install with the supported CLI entry point:
 
 ```sh
-cd /path/to/harness
-pnpm dsh plugin --profile web add \
-  file:/absolute/path/to/dsh-higress-credential-routes-plugin-0.1.0.tgz
+cd "$HARNESS_SRC"
+pnpm dsh plugin --profile "$PROFILE" add \
+  "file:$PLUGIN_ROOT/harness-gateway02/dsh-higress-credential-routes-plugin-0.1.0.tgz"
 ```
-
-The running `127.0.0.1:3080` instance uses the `web` profile; installing into `demo` does not update it. Restart the matching Harness Web process after installation.

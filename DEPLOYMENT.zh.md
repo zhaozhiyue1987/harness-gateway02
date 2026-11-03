@@ -1,32 +1,33 @@
 # 部署说明
 
-本目录生成的新包为 `dsh-higress-credential-routes-plugin`，与父目录旧插件独立安装、启停和卸载。
+本目录生成的新包为 `dsh-higress-credential-routes-plugin`，与父目录旧插件独立安装、启停和卸载。以下流程面向任意具备 Harness 源码 checkout 的目标环境。
+
+## 1. 从 GitHub 克隆并一键安装
 
 ```bash
-PLUGIN_DIR="/Users/zhao/项目开发/ctc-ctcics-harness-repository/dsh-higress-credential-routes-plugin"
-PROFILE="web"
-cd "$PLUGIN_DIR"
-npm ci
-npm run typecheck
-npm run build
-npm test
-npm pack
-cd /Users/zhao/项目开发/harness
+PLUGIN_ROOT="/opt/harness-plugins"
+HARNESS_SRC="/opt/harness"
+PROFILE="<existing-profile>"
+
+mkdir -p "$PLUGIN_ROOT"
+git clone https://github.com/zhaozhiyue1987/harness-gateway02.git \
+  "$PLUGIN_ROOT/harness-gateway02"
+cd "$PLUGIN_ROOT/harness-gateway02"
+HARNESS_SRC="$HARNESS_SRC" PROFILE="$PROFILE" \
+  ./scripts/install-native-harness.sh
+```
+
+将 `PLUGIN_ROOT`、`HARNESS_SRC` 和 `PROFILE` 改成目标环境的实际值后执行；不要原样保留 `<existing-profile>`。脚本在插件目录运行 npm 命令，在 Harness 源码目录通过原生 CLI 安装，不创建 profile、不读取业务密钥。
+
+如果终端提示 `dsh: command not found`，请从 Harness 源码目录使用源码入口执行：
+
+```bash
+cd "$HARNESS_SRC"
 pnpm dsh plugin --profile "$PROFILE" add \
-  file:"$PLUGIN_DIR/dsh-higress-credential-routes-plugin-0.1.0.tgz"
+  "file:$PLUGIN_ROOT/harness-gateway02/dsh-higress-credential-routes-plugin-0.1.0.tgz"
 ```
 
-注意：`/path/to/...`、`<profile-name>` 只是文档占位符，不能原样执行；profile 参数不要带尖括号。若仓库不在上述目录，请把 `PLUGIN_DIR` 改成实际绝对路径。
-
-如果终端提示 `dsh: command not found`，说明当前 shell 没有 Harness CLI。当前本地 Harness 源码位于 `/Users/zhao/项目开发/harness` 时，使用源码入口执行：
-
-```bash
-cd /Users/zhao/项目开发/harness
-pnpm dsh plugin --profile web add \
-  file:/Users/zhao/项目开发/ctc-ctcics-harness-repository/dsh-higress-credential-routes-plugin/dsh-higress-credential-routes-plugin-0.1.0.tgz
-```
-
-`127.0.0.1:3080` 当前运行的是 `web` profile；安装到 `demo` profile 不会出现在这个已启动实例中。安装后需要重启当前 Harness Web 进程，新的 bundle 才会加载。
+安装后需要重启所选 profile 对应的 Harness Web 进程，新的 bundle 才会加载。
 
 Console 端需先部署凭证发现接口，并为三节点配置共享签名密钥。Harness 中新增连接时输入 Console 管理地址和已有 `BEARER` 网关凭证；同一路由关联多个凭证时，可分别建立多个连接验证隔离行为。
 
@@ -61,27 +62,28 @@ Authorization: Bearer <短时发现令牌>
 
 生产入口还应在 Ingress/API Gateway 配置 TLS、请求头大小限制和跨三副本的全局限流；插件内置的是单副本有界保护。
 
-## 人工配置与验证步骤
+## 3. 人工配置与验证步骤
 
-以下流程用于本地或测试环境。请准备两个地址：
+请准备两个稳定入口地址：
 
-- `CONSOLE_URL`：Higress Console 地址，例如 `http://127.0.0.1:8001`；插件配置填写这个地址，不要填写 `/v1/ai/credential-discovery/...` 子路径。
-- `GATEWAY_URL`：AI 数据面公网地址，例如 `http://127.0.0.1:9080`；Console 的“网关公网地址”必须配置为该地址，插件返回的路由调用地址会在它后面追加路由前缀和 `/v1`。
+- `CONSOLE_URL`：Higress Console 稳定入口，例如 `https://console.example.com`；插件配置填写这个地址，不要填写 `/v1/ai/credential-discovery/...` 子路径。
+- `GATEWAY_URL`：AI 数据面稳定入口，例如 `https://gateway.example.com`；Console 的“网关公网地址”必须配置为该地址，插件返回的路由调用地址会在它后面追加路由前缀和 `/v1`。
 
-### 1. 构建并安装新插件
+### 3.1 构建并安装新插件
 
 ```bash
-PLUGIN_DIR="/Users/zhao/项目开发/ctc-ctcics-harness-repository/dsh-higress-credential-routes-plugin"
-PROFILE="web"
-cd "$PLUGIN_DIR"
+PLUGIN_ROOT="/opt/harness-plugins"
+HARNESS_SRC="/opt/harness"
+PROFILE="<existing-profile>"
+cd "$PLUGIN_ROOT/harness-gateway02"
 npm ci
 npm run typecheck
 npm run build
 npm test
 npm pack
-cd /Users/zhao/项目开发/harness
+cd "$HARNESS_SRC"
 pnpm dsh plugin --profile "$PROFILE" add \
-  file:"$PLUGIN_DIR/dsh-higress-credential-routes-plugin-0.1.0.tgz"
+  "file:$PLUGIN_ROOT/harness-gateway02/dsh-higress-credential-routes-plugin-0.1.0.tgz"
 ```
 
 安装后重启或刷新 Harness。在 Harness 的“设置 → 插件/插件配置”中应能看到 **AsiaInfo AIGW credential routes**。旧的 `dsh-higress-ai-route-plugin` 不需要卸载，两个插件使用不同的设置、凭证和 Provider 命名空间。
@@ -99,7 +101,7 @@ pnpm dsh plugin --profile "$PROFILE" add \
 下面命令不会把访问令牌写入文件；`TOKEN` 仅保存在当前 shell 内存中。请将 `<BEARER-凭证原文>` 替换为测试凭证，避免在 shell 历史中直接保存长期凭证。
 
 ```bash
-CONSOLE_URL='http://127.0.0.1:8001'
+CONSOLE_URL='https://console.example.com'
 GATEWAY_CREDENTIAL='<BEARER-凭证原文>'
 
 EXCHANGE_JSON="$(curl -sS -X POST \
@@ -142,7 +144,7 @@ printf '%s' "$ROUTES_JSON" | jq '{success, collectionVersion: .data.collectionVe
 以路由 `/aaa` 为例，直接调用网关：
 
 ```bash
-GATEWAY_URL='http://127.0.0.1:9080'
+GATEWAY_URL='https://gateway.example.com'
 GATEWAY_CREDENTIAL='<BEARER-凭证原文>'
 
 curl -sS -X POST "${GATEWAY_URL}/aaa/v1/chat/completions" \
