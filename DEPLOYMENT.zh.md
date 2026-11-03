@@ -6,12 +6,14 @@
 PLUGIN_DIR="/Users/zhao/项目开发/ctc-ctcics-harness-repository/dsh-higress-credential-routes-plugin"
 PROFILE="web"
 cd "$PLUGIN_DIR"
-npm install
+npm ci
 npm run typecheck
 npm run build
 npm test
 npm pack
-dsh plugin --profile "$PROFILE" add "$PLUGIN_DIR/dsh-higress-credential-routes-plugin-0.1.0.tgz"
+cd /Users/zhao/项目开发/harness
+pnpm dsh plugin --profile "$PROFILE" add \
+  file:"$PLUGIN_DIR/dsh-higress-credential-routes-plugin-0.1.0.tgz"
 ```
 
 注意：`/path/to/...`、`<profile-name>` 只是文档占位符，不能原样执行；profile 参数不要带尖括号。若仓库不在上述目录，请把 `PLUGIN_DIR` 改成实际绝对路径。
@@ -72,12 +74,14 @@ Authorization: Bearer <短时发现令牌>
 PLUGIN_DIR="/Users/zhao/项目开发/ctc-ctcics-harness-repository/dsh-higress-credential-routes-plugin"
 PROFILE="web"
 cd "$PLUGIN_DIR"
-npm install
+npm ci
 npm run typecheck
 npm run build
 npm test
 npm pack
-dsh plugin --profile "$PROFILE" add "$PLUGIN_DIR/dsh-higress-credential-routes-plugin-0.1.0.tgz"
+cd /Users/zhao/项目开发/harness
+pnpm dsh plugin --profile "$PROFILE" add \
+  file:"$PLUGIN_DIR/dsh-higress-credential-routes-plugin-0.1.0.tgz"
 ```
 
 安装后重启或刷新 Harness。在 Harness 的“设置 → 插件/插件配置”中应能看到 **AsiaInfo AIGW credential routes**。旧的 `dsh-higress-ai-route-plugin` 不需要卸载，两个插件使用不同的设置、凭证和 Provider 命名空间。

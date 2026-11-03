@@ -13,6 +13,30 @@ HARNESS_SRC=/opt/dsh/harness PROFILE=web \
 
 目标 profile 必须已存在。安装完成后需要重启 Harness Web 进程，业务上的 Console 地址、Bearer 凭证和路由选择仍需在 Harness UI 中人工配置。
 
+## 从 Harness 源码 checkout 安装
+
+`npm` 命令只应在本插件目录执行。Harness 源码仓库是 pnpm workspace，不能在 Harness 根目录运行 `npm install`；源码 checkout 也不保证提供全局 `dsh` 命令。
+
+如果当前 Harness 源码位于 `/Users/zhao/项目开发/harness`，手工安装应使用源码 CLI 入口：
+
+```bash
+PLUGIN_DIR="/Users/zhao/项目开发/ctc-ctcics-harness-repository/dsh-higress-credential-routes-plugin"
+PROFILE="web"
+
+cd "$PLUGIN_DIR"
+npm ci
+npm run typecheck
+npm run build
+npm test
+npm pack
+
+cd /Users/zhao/项目开发/harness
+pnpm dsh plugin --profile "$PROFILE" add \
+  file:"$PLUGIN_DIR/dsh-higress-credential-routes-plugin-0.1.0.tgz"
+```
+
+当前 `127.0.0.1:3080` 使用 `web` profile；安装到 `demo` profile 不会出现在该实例中。安装后必须重启对应 Harness Web 进程，新的 bundle 才会加载。
+
 ## 本地构建
 
 ```bash
