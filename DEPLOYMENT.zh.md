@@ -2,12 +2,35 @@
 
 本目录生成的新包为 `dsh-higress-credential-routes-plugin`，与父目录旧插件独立安装、启停和卸载。以下流程面向任意具备 Harness 源码 checkout 的目标环境。
 
+## 先确认两个目录
+
+本手册会在两个不同目录中执行命令：
+
+- **插件目录**：从本仓库 clone 得到的 `harness-gateway02` 目录。`npm ci`、`npm run typecheck`、`npm run build`、`npm test` 和 `npm pack` 都在这里执行。目录中应有 `package.json`、`scripts/` 和 `src/`。
+- **Harness 源码目录**：Harness 主仓库 checkout 的根目录。`pnpm dsh plugin ... add` 在这里执行。目录中应有 `package.json`、`apps/cli/src/bin.ts` 和 `apps/`。
+
+两个目录应当并列，例如：
+
+```text
+/Users/你的用户名/
+├── harness-plugins/harness-gateway02/  ← 插件目录
+└── harness/                           ← Harness 源码目录
+```
+
+`PROFILE` 是已有 Harness profile 的名称（例如 `web`），不是目录路径。
+
 ## 1. 从 GitHub 克隆并一键安装
 
+下面的命令块可从任意目录开始。请把三个变量改成真实值，`PROFILE` 必须是已经存在的 profile；脚本内部会先在插件目录执行 npm，再切换到 Harness 源码目录执行原生 CLI。
+
 ```bash
-PLUGIN_ROOT="/opt/harness-plugins"
-HARNESS_SRC="/opt/harness"
+PLUGIN_ROOT="$HOME/harness-plugins"
+HARNESS_SRC="$HOME/harness"
 PROFILE="<existing-profile>"
+
+test -f "$HARNESS_SRC/package.json" && \
+test -f "$HARNESS_SRC/apps/cli/src/bin.ts" && \
+echo "Harness 源码目录正确：$HARNESS_SRC"
 
 mkdir -p "$PLUGIN_ROOT"
 git clone https://github.com/zhaozhiyue1987/harness-gateway02.git \
@@ -18,6 +41,8 @@ HARNESS_SRC="$HARNESS_SRC" PROFILE="$PROFILE" \
 ```
 
 将 `PLUGIN_ROOT`、`HARNESS_SRC` 和 `PROFILE` 改成目标环境的实际值后执行；不要原样保留 `<existing-profile>`。脚本在插件目录运行 npm 命令，在 Harness 源码目录通过原生 CLI 安装，不创建 profile、不读取业务密钥。
+
+如果不使用一键脚本，请按第 3.1 节逐步执行；不要把 `npm` 命令和 `pnpm dsh` 命令混在同一个目录执行。
 
 如果终端提示 `dsh: command not found`，请从 Harness 源码目录使用源码入口执行：
 
@@ -71,22 +96,74 @@ Authorization: Bearer <短时发现令牌>
 
 ### 3.1 构建并安装新插件
 
-以下代码块可从任意目录开始；`cd "$PLUGIN_ROOT/harness-gateway02"` 后的 `npm` 命令在插件 clone 目录执行，`cd "$HARNESS_SRC"` 后的 `pnpm dsh` 命令在 Harness 源码 checkout 目录执行。
+下面按“每一步都能检查结果”的方式执行。可以从任意目录开始，但不能跳过目录切换：
+
+#### 第 1 步：设置路径和 profile
+
+在终端输入以下内容。`PLUGIN_ROOT` 是插件仓库的父目录，`HARNESS_SRC` 是 Harness 源码 checkout 根目录，`PROFILE` 是已经存在的 profile 名称。
 
 ```bash
-PLUGIN_ROOT="/opt/harness-plugins"
-HARNESS_SRC="/opt/harness"
-PROFILE="<existing-profile>"
+PLUGIN_ROOT="$HOME/harness-plugins"
+HARNESS_SRC="$HOME/harness"
+PROFILE="web"
+```
+
+如果目标环境的 profile 不是 `web`，把 `PROFILE` 改成真实名称；不要保留 `<existing-profile>`。然后确认 `HARNESS_SRC` 确实是 Harness 源码根目录：
+
+```bash
+test -f "$HARNESS_SRC/package.json" && \
+test -f "$HARNESS_SRC/apps/cli/src/bin.ts" && \
+echo "Harness 源码目录正确：$HARNESS_SRC"
+```
+
+如果没有打印“目录正确”，先修正 `HARNESS_SRC`，不要继续执行后面的安装命令。
+
+#### 第 2 步：克隆插件并进入插件目录
+
+```bash
+mkdir -p "$PLUGIN_ROOT"
+git clone https://github.com/zhaozhiyue1987/harness-gateway02.git \
+  "$PLUGIN_ROOT/harness-gateway02"
 cd "$PLUGIN_ROOT/harness-gateway02"
+pwd
+```
+
+最后的 `pwd` 必须显示以 `harness-gateway02` 结尾的路径。下面的 `npm` 命令必须保持在这个目录执行：
+
+#### 第 3 步：在插件目录安装依赖、构建、测试和打包
+
+```bash
 npm ci
 npm run typecheck
 npm run build
 npm test
 npm pack
+ls -lh dsh-higress-credential-routes-plugin-0.1.0.tgz
+```
+
+预期结果：类型检查、构建和测试退出码为 0；当前目录出现 `dist/` 和 `dsh-higress-credential-routes-plugin-0.1.0.tgz`。如果 `ls` 找不到 tgz 文件，先修复构建问题，不要执行安装。
+
+#### 第 4 步：切换到 Harness 源码目录
+
+```bash
 cd "$HARNESS_SRC"
+pwd
+```
+
+最后的 `pwd` 必须显示 Harness 源码 checkout 路径，不能仍然显示 `harness-gateway02`。只有确认目录正确后，才执行下一步。
+
+#### 第 5 步：使用 Harness 源码入口安装到已有 profile
+
+保持当前目录为 `"$HARNESS_SRC"`，执行：
+
+```bash
 pnpm dsh plugin --profile "$PROFILE" add \
   "file:$PLUGIN_ROOT/harness-gateway02/dsh-higress-credential-routes-plugin-0.1.0.tgz"
 ```
+
+如果出现 `dsh: command not found`，不要在插件目录安装全局命令；仍在 Harness 源码目录执行上面的 `pnpm dsh`。如果出现 `workspace:` 或找不到文件错误，检查是否运行了 `npm install`（而不是 `npm ci`）、tgz 路径是否正确，以及当前目录是否为 Harness 源码根目录。
+
+#### 第 6 步：重启 Harness Web 并检查插件
 
 安装后重启或刷新 Harness。在 Harness 的“设置 → 插件/插件配置”中应能看到 **AsiaInfo AIGW credential routes**。旧的 `dsh-higress-ai-route-plugin` 不需要卸载，两个插件使用不同的设置、凭证和 Provider 命名空间。
 
