@@ -102,6 +102,50 @@ For a beginner-friendly manual installation, follow these steps in order. You ma
 
    The final `pwd` must show the Harness checkout path. Then install the tarball:
 
+   If `cd "$HARNESS_SRC"` reports `no such file or directory`, the variable
+   still points to an example or old path. A failed `cd` leaves the shell in the
+   plugin directory, so `pwd` will still end in `harness-gateway02`; do not run
+   `pnpm dsh` there. Locate the Harness CLI source first:
+
+   ```sh
+   find "$HOME" -path "*/apps/cli/src/bin.ts" -print 2>/dev/null
+   ```
+
+   If the result is `/Users/your-user/project/harness/apps/cli/src/bin.ts`, set
+   the parent directory and verify it:
+
+   ```sh
+   export HARNESS_SRC="$HOME/project/harness"
+   cd "$HARNESS_SRC"
+   pwd
+   test -f package.json && test -f apps/cli/src/bin.ts && \
+     echo "Harness source checkout: $HARNESS_SRC"
+   ```
+
+   Run `pnpm dsh plugin ... add` only after `pwd` shows the Harness source root.
+
+### Windows WSL2
+
+The command order is the same as macOS, but run every command in the WSL Ubuntu
+terminal, not PowerShell. Keep both checkouts in the WSL Linux filesystem (for
+example under `$HOME`), not under `/mnt/c` or another Windows-mounted path.
+From the WSL terminal, verify Node.js `>=22.19.0`, then enable Corepack when
+needed:
+
+```sh
+uname -srm
+node --version
+npm --version
+corepack enable
+pnpm --version
+```
+
+Run `pnpm install --frozen-lockfile` once in the Harness source root before the
+first `pnpm dsh` command. The plugin still uses `npm ci`, build, test and pack
+in its own checkout. WSL may not run systemd; if the installer cannot restart
+`dsh-harness`, restart Harness Web using its existing WSL launch command before
+opening the Web UI from Windows.
+
 ```sh
 pnpm dsh plugin --profile "$PROFILE" add \
   "file:$PLUGIN_ROOT/harness-gateway02/dsh-higress-credential-routes-plugin-0.1.0.tgz"

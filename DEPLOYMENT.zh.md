@@ -19,6 +19,26 @@
 
 `PROFILE` 是已有 Harness profile 的名称（例如 `web`），不是目录路径。
 
+## Windows WSL2 环境
+
+WSL2 的命令顺序与 macOS 相同，但所有命令必须在 WSL 的 Ubuntu 终端执行，不能在 PowerShell 中执行。建议把两个 checkout 放在 WSL Linux 文件系统中：
+
+```bash
+export PLUGIN_ROOT="$HOME/harness-plugins"
+export HARNESS_SRC="$HOME/harness"
+export PROFILE="web"
+
+mkdir -p "$PLUGIN_ROOT"
+cd "$HARNESS_SRC"
+pnpm install --frozen-lockfile
+test -f package.json && test -f apps/cli/src/bin.ts && \
+  echo "Harness 源码目录正确：$HARNESS_SRC"
+```
+
+不要把插件或 Harness 源码放在 `/mnt/c`、`/mnt/d` 等 Windows 挂载盘中运行 `npm ci`，否则可能出现 `node_modules` 权限、软链接和速度问题。后续步骤仍保持“插件目录执行 npm、Harness 源码目录执行 pnpm dsh”的规则。
+
+WSL 默认不一定启用 systemd。一键脚本在无法检测到 `dsh-harness` systemd 服务时不会报安装失败，但不会自动重启 Web；安装完成后请在 WSL 内按原有启动命令手动重启 Harness Web，再从 Windows 浏览器访问其实际端口。若已启用 systemd，可按普通 Linux 环境使用 `RESTART_SERVICE=always SERVICE_NAME=dsh-harness`。
+
 ## 1. 从 GitHub 克隆并一键安装
 
 下面的命令块可从任意目录开始。请把三个变量改成真实值，`PROFILE` 必须是已经存在的 profile；脚本内部会先在插件目录执行 npm，再切换到 Harness 源码目录执行原生 CLI。
@@ -117,6 +137,24 @@ echo "Harness 源码目录正确：$HARNESS_SRC"
 ```
 
 如果没有打印“目录正确”，先修正 `HARNESS_SRC`，不要继续执行后面的安装命令。
+
+如果执行 `cd "$HARNESS_SRC"` 报 `no such file or directory`，不要继续在插件目录执行安装命令。`cd` 失败后当前目录不会改变，因此 `pwd` 仍显示 `harness-gateway02` 并不表示目录正确。请先定位真正的 Harness 源码入口：
+
+```bash
+find "$HOME" -path "*/apps/cli/src/bin.ts" -print 2>/dev/null
+```
+
+例如输出 `/Users/你的用户名/项目开发/harness/apps/cli/src/bin.ts` 时，应执行：
+
+```bash
+export HARNESS_SRC="$HOME/项目开发/harness"
+cd "$HARNESS_SRC"
+pwd
+test -f package.json && test -f apps/cli/src/bin.ts && \
+  echo "Harness 源码目录正确：$HARNESS_SRC"
+```
+
+只有 `pwd` 已切换到 Harness 源码根目录后，才执行第 5 步的 `pnpm dsh plugin ... add`。
 
 #### 第 2 步：克隆插件并进入插件目录
 
